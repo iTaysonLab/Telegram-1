@@ -2010,7 +2010,7 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
                             }
                         }
                     }
-                } else if (intent.getAction().equals("org.telegram.messenger.OPEN_ACCOUNT")) {
+                } else if (intent.getAction().equals("bruhcollective.itaysonlab.messenger.OPEN_ACCOUNT")) {
                     open_settings = 1;
                 } else if (intent.getAction().equals("new_dialog")) {
                     open_new_dialog = 1;

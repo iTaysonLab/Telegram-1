@@ -43,6 +43,7 @@ import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.SimpleTextView;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ChatActivity;
+import org.telegram.ui.Components.Animations.Configurator.ChatBgConfiguratorActivity;
 import org.telegram.ui.MediaActivity;
 import org.telegram.ui.ProfileActivity;
 
@@ -104,6 +105,11 @@ public class ChatAvatarContainer extends FrameLayout implements NotificationCent
         if (avatarClickable) {
             avatarImageView.setOnClickListener(v -> openProfile(true));
         }
+
+        avatarImageView.setOnLongClickListener(v -> {
+            chatActivity.presentFragment(new ChatBgConfiguratorActivity());
+            return true;
+        });
 
         titleTextView = new SimpleTextView(context);
         titleTextView.setTextColor(Theme.getColor(Theme.key_actionBarDefaultTitle));

@@ -292,6 +292,10 @@ public class ActionBarLayout extends FrameLayout {
         }
     }
 
+    public FrameLayout getContainerView() {
+        return containerView;
+    }
+
     public void init(ArrayList<BaseFragment> stack) {
         fragmentsStack = stack;
         containerViewBack = new LayoutContainer(parentActivity);

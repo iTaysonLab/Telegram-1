@@ -166,6 +166,8 @@ import org.telegram.ui.Components.BlurBehindDrawable;
 import org.telegram.ui.Components.Bulletin;
 import org.telegram.ui.Components.BulletinFactory;
 import org.telegram.ui.Components.ChatActivityEnterView;
+import org.telegram.ui.Components.Animations.Background.ChatBackgroundController;
+import org.telegram.ui.Components.Animations.Background.ChatGradientView;
 import org.telegram.ui.Components.ChatAttachAlert;
 import org.telegram.ui.Components.ChatAttachAlertDocumentLayout;
 import org.telegram.ui.Components.ChatAvatarContainer;
@@ -278,6 +280,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
     private TextView forwardButton;
     private TextView replyButton;
     private FrameLayout emptyViewContainer;
+    private ChatGradientView chatGradientView;
     private ChatGreetingsView greetingsViewContainer;
     private SizeNotifierFrameLayout contentView;
     private ChatBigEmptyView bigEmptyView;
@@ -2309,6 +2312,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                     } else {
                         actionBar.setTranslationY(y);
                         emptyViewContainer.setTranslationY(y / 2);
+                        chatGradientView.setTranslationY(y / 2);
                         progressView.setTranslationY(y / 2);
                         contentView.setBackgroundTranslation((int) y);
                         instantCameraView.onPanTranslationUpdate(y);
@@ -2764,7 +2768,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                         int contentWidthSpec = MeasureSpec.makeMeasureSpec(widthSize, MeasureSpec.EXACTLY);
                         int contentHeightSpec = MeasureSpec.makeMeasureSpec(allHeight - inputFieldHeight - chatEmojiViewPadding + AndroidUtilities.dp(3), MeasureSpec.EXACTLY);
                         child.measure(contentWidthSpec, contentHeightSpec);
-                    } else if (child == emptyViewContainer) {
+                    } else if (child == emptyViewContainer || child == chatGradientView) {
                         int contentWidthSpec = MeasureSpec.makeMeasureSpec(widthSize, MeasureSpec.EXACTLY);
                         int contentHeightSpec = MeasureSpec.makeMeasureSpec(heightSize, MeasureSpec.EXACTLY);
                         child.measure(contentWidthSpec, contentHeightSpec);
@@ -2955,6 +2959,8 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                         }
                     } else if (child == emptyViewContainer) {
                         childTop -= inputFieldHeight / 2 - (actionBar.getVisibility() == VISIBLE ? actionBar.getMeasuredHeight() / 2 : 0);
+                    } else if (child == chatGradientView) {
+                        childTop -= (actionBar.getVisibility() == VISIBLE ? actionBar.getMeasuredHeight() / 2 : 0);
                     } else if (chatActivityEnterView.isPopupView(child)) {
                         if (AndroidUtilities.isInMultiwindow || inBubbleMode) {
                             childTop = chatActivityEnterView.getTop() - child.getMeasuredHeight() + AndroidUtilities.dp(1);
@@ -3011,6 +3017,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 contentView.setTranslationY(y);
                 actionBar.setTranslationY(0);
                 emptyViewContainer.setTranslationY(0);
+                chatGradientView.setTranslationY(0);
                 progressView.setTranslationY(0);
                 contentPanTranslation = 0;
                 contentView.setBackgroundTranslation(0);
@@ -3032,7 +3039,8 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             contentView.setOccupyStatusBar(false);
         }
 
-        contentView.setBackgroundImage(Theme.getCachedWallpaper(), Theme.isWallpaperMotion());
+        createChatWallpaper();
+        applyChatWallpaper();
 
         emptyViewContainer = new FrameLayout(context);
         emptyViewContainer.setVisibility(View.INVISIBLE);
@@ -3151,8 +3159,10 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 if (emptyViewContainer != null) {
                     if (chatActivityEnterView != null && chatActivityEnterView.pannelAniamationInProgress()) {
                         emptyViewContainer.setTranslationY(translationY / 2f);
+                        if (chatGradientView != null) chatGradientView.setTranslationY(translationY / 2f);
                     } else {
                         emptyViewContainer.setTranslationY(translationY / 1.7f);
+                        if (chatGradientView != null) chatGradientView.setTranslationY(translationY / 1.7f);
                     }
                 }
                 invalidateChatListViewTopPadding();
@@ -5961,6 +5971,9 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                     updateScheduledInterface(false);
                 }
                 hideFieldPanel(notify, scheduleDate, true);
+                if (chatGradientView != null) {
+                    chatGradientView.animatePosition(ChatGradientView.Scenario.SendMessage);
+                }
             }
 
             @Override
@@ -10673,9 +10686,12 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 showFloatingDateView(false);
             }
         }
+
         returnToMessageId = fromMessageId;
         returnToLoadIndex = loadIndex;
         needSelectFromMessageId = select;
+
+        if (chatGradientView != null) chatGradientView.animatePosition(ChatGradientView.Scenario.JumpToMessage);
     }
 
 
@@ -14381,7 +14397,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             }
         } else if (id == NotificationCenter.didSetNewWallpapper) {
             if (fragmentView != null) {
-                contentView.setBackgroundImage(Theme.getCachedWallpaper(), Theme.isWallpaperMotion());
+                applyChatWallpaper();
                 progressView2.getBackground().setColorFilter(Theme.colorFilter);
                 if (emptyView != null) {
                     emptyView.getBackground().setColorFilter(Theme.colorFilter);
@@ -17423,6 +17439,9 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         if (contentView != null) {
             contentView.onResume();
         }
+        if (chatGradientView != null) {
+            chatGradientView.onResume();
+        }
         checkChecksHint();
 
         Bulletin.addDelegate(this, bulletinDelegate = new Bulletin.Delegate() {
@@ -17583,6 +17602,9 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         if (contentView != null) {
             contentView.onPause();
         }
+        if (chatGradientView != null) {
+            chatGradientView.onPause();
+        }
         if (chatMode == 0) {
             CharSequence[] message = new CharSequence[]{draftMessage};
             ArrayList<TLRPC.MessageEntity> entities = getMediaDataController().getEntities(message, currentEncryptedChat == null || AndroidUtilities.getPeerLayerVersion(currentEncryptedChat.layer) >= 101);
@@ -17671,6 +17693,23 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         }
         if (AvatarPreviewer.hasVisibleInstance()) {
             AvatarPreviewer.getInstance().close();
+        }
+    }
+    
+    private void createChatWallpaper() {
+        chatGradientView = new ChatGradientView(getParentActivity());
+        contentView.addView(chatGradientView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        ChatBackgroundController.updateColors(chatGradientView, Theme.getCachedWallpaper(), Theme.isWallpaperMotion(), false);
+        chatGradientView.animatePosition(ChatGradientView.Scenario.OpenChat);
+    }
+
+    private void applyChatWallpaper() {
+        if (ChatBackgroundController.isMotionBackgroundEnabled(Theme.getCachedWallpaper())) {
+            chatGradientView.setVisibility(View.VISIBLE);
+            ChatBackgroundController.updateColors(chatGradientView, Theme.getCachedWallpaper(), Theme.isWallpaperMotion());
+        } else {
+            if (chatGradientView != null) chatGradientView.setVisibility(View.GONE);
+            contentView.setBackgroundImage(Theme.getCachedWallpaper(), Theme.isWallpaperMotion());
         }
     }
 
